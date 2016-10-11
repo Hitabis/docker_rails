@@ -38,63 +38,41 @@ ENV APP_DIR app
 # Adds nano text editor
 ENV TERM xterm
 
-# Update
-RUN apt-get update
+# Install updates and required softwares
+RUN apt-get update && apt-get -y upgrade
+RUN apt-get install -y sudo vim
 
-# install rails ------------------------------------------------ >>
+RUN mkdir /appuser
+RUN groupadd -g 701 -r appuser && useradd -r -u 701 -g appuser -d /home/appuser -s /bin/bash -m appuser
+RUN echo "appuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN echo "Defaults:appuser !requiretty" >> /etc/sudoers
 
-RUN apt-get install -y nodejs build-essential nodejs libpq-dev nano mysql-client postgresql-client sqlite3 ghostscript --no-install-recommends
+USER appuser
 
-RUN gem install rails --version "$RAILS_VERSION"
+RUN sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 561F9B9CAC40B2F7
+RUN sudo apt-get install -y apt-transport-https ca-certificates
 
-# apache setup ---------------------------------------------------
+RUN sudo sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger jessie main > /etc/apt/sources.list.d/passenger.list' && sudo apt-get update
 
-# Apache
-RUN apt-get -y install apache2 apache2-mpm-worker
+RUN sudo apt-get install -y --no-install-recommends nodejs \
+build-essential libpq-dev nano mysql-client postgresql-client \
+sqlite3 ghostscript apache2 apache2-mpm-worker libcurl4-openssl-dev \
+apache2-threaded-dev libapr1-dev libaprutil1-dev libapache2-mod-passenger
 
-RUN echo '/usr/sbin/apachectl restart' >> /etc/bash.bashrc
+RUN sudo gem install rails --version "$RAILS_VERSION"
 
-RUN apachectl restart
+RUN sudo sh -c 'echo sudo /usr/sbin/apachectl restart > /etc/bash.bashrc'
+
+RUN sudo apachectl restart
 
 # Set user environment
-RUN mkdir /rails
-RUN mkdir /rails/$APP_DIR
+RUN sudo mkdir /rails
+RUN sudo mkdir /rails/$APP_DIR
+RUN sudo chown -R appuser:appuser /appuser
 VOLUME ["/rails/$APP_DIR"]
 WORKDIR /rails/$APP_DIR
 
-RUN mkdir /guest
-RUN groupadd -r guest && useradd -r -g guest -d /home/guest -s /bin/bash -m guest
-RUN chown -R guest:guest /rails
-
-# passenger dependencies --------------------------------------------- >>
-
-RUN apt-get install -y nodejs --no-install-recommends
-
-# Curl development headers with SSL support
-RUN apt-get install -y libcurl4-openssl-dev
-
-# Apache 2 development headers
-RUN apt-get install -y apache2-threaded-dev
-
-# Apache Portable Runtime (APR) development headers
-RUN apt-get install -y libapr1-dev
-
-# Apache Portable Runtime Utility (APU) development headers
-RUN apt-get install -y libaprutil1-dev
-
-# install passenger ---------------------------------------------------- >>
-
-# Install our PGP key and add HTTPS support for APT
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 561F9B9CAC40B2F7
-RUN apt-get install -y apt-transport-https ca-certificates
-
-# Add our APT repository
-RUN sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger jessie main > /etc/apt/sources.list.d/passenger.list'
-RUN apt-get update
-
-# Install Passenger + Apache module
-RUN apt-get install -y libapache2-mod-passenger
-
+USER root
 RUN chsh -s /bin/bash root
 RUN echo 'ServerName localhost' >> /etc/apache2/apache2.conf
 
@@ -102,19 +80,23 @@ RUN a2enmod passenger
 RUN apache2ctl restart
 
 # config passenger ----------------------------------------------------- >>
-RUN echo "<VirtualHost *:80>\\n \  
-  # ServerName localhost\\n \  
-  DocumentRoot /rails/$APP_DIR/public\\n \  
-  <Directory /rails/$APP_DIR/public>\\n \  
-    # This relaxes Apache security settings.\\n \  
-    AllowOverride all\\n \  
-    # MultiViews must be turned off.\\n \  
-    Options -MultiViews\\n \  
-    # Uncomment this if you're on Apache >= 2.4:\\n \  
-    Require all granted\\n \  
-    RailsEnv development\\n \  
-  </Directory>\\n \  
-</VirtualHost>  " > /etc/apache2/sites-enabled/000-default.conf
+RUN echo "<VirtualHost *:80>\\n \
+  # ServerName localhost\\n \
+  DocumentRoot /rails/$APP_DIR/public\\n \
+  <Directory /rails/$APP_DIR/public>\\n \
+    # This relaxes Apache security settings.\\n \
+    AllowOverride all\\n \
+    # MultiViews must be turned off.\\n \
+    Options -MultiViews\\n \
+    # Uncomment this if you're on Apache >= 2.4:\\n \
+    Require all granted\\n \
+    RailsEnv development\\n \
+  </Directory>\\n \
+</VirtualHost>" > /etc/apache2/sites-enabled/000-default.conf
+
+USER appuser
+
+CMD sudo a2enmod passenger && sudo apache2ctl restart && sudo /bin/bash
 """
 
   with open('Dockerfile', 'w') as f:
