@@ -55,14 +55,12 @@ RUN sudo apt-get install -y apt-transport-https ca-certificates
 RUN sudo sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger jessie main > /etc/apt/sources.list.d/passenger.list' && sudo apt-get update
 
 RUN sudo apt-get install -y --no-install-recommends nodejs \
-build-essential libpq-dev nano mysql-client postgresql-client \
+lynx build-essential libpq-dev nano mysql-client postgresql-client \
 sqlite3 ghostscript apache2 apache2-mpm-worker libcurl4-openssl-dev \
 apache2-threaded-dev libapr1-dev libaprutil1-dev libapache2-mod-passenger
 
 RUN sudo gem install rails --version "$RAILS_VERSION"
-
 RUN sudo sh -c 'echo sudo /usr/sbin/apachectl restart > /etc/bash.bashrc'
-
 RUN sudo apachectl restart
 
 # Set user environment
@@ -75,6 +73,7 @@ WORKDIR /rails/$APP_DIR
 USER root
 RUN chsh -s /bin/bash root
 RUN echo 'ServerName localhost' >> /etc/apache2/apache2.conf
+RUN echo "export APACHE_LYNX='www-browser -dump'" >> /etc/apache2/envvars
 
 RUN a2enmod passenger
 RUN apache2ctl restart
