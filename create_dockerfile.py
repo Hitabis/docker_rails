@@ -54,7 +54,7 @@ RUN sudo apt-get install -y apt-transport-https ca-certificates
 
 RUN sudo sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger jessie main > /etc/apt/sources.list.d/passenger.list' && sudo apt-get update
 
-RUN sudo apt-get install -y --no-install-recommends nodejs \
+RUN sudo apt-get install -y --no-install-recommends cron nodejs \
 lynx build-essential libpq-dev nano mysql-client postgresql-client \
 sqlite3 ghostscript apache2 apache2-mpm-worker libcurl4-openssl-dev \
 apache2-threaded-dev libapr1-dev libaprutil1-dev libapache2-mod-passenger
