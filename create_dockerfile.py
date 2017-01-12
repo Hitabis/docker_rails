@@ -79,6 +79,7 @@ RUN a2enmod passenger
 RUN apache2ctl restart
 
 # config passenger ----------------------------------------------------- >>
+RUN echo 'PassengerDefaultUser appuser' >> /etc/apache2/mods-available/passenger.conf
 RUN echo "<VirtualHost *:80>\\n \
   # ServerName localhost\\n \
   DocumentRoot /rails/$APP_DIR/public\\n \
