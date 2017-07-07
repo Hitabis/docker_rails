@@ -91,10 +91,12 @@ RUN echo "<VirtualHost *:80>\\n \
     # Uncomment this if you're on Apache >= 2.4:\\n \
     Require all granted\\n \
     RailsEnv development\\n \
+    SetEnv BUNDLE_PATH /rails/bundle\\n \
   </Directory>\\n \
 </VirtualHost>" > /etc/apache2/sites-enabled/000-default.conf
 
 USER appuser
+ENV PASSENGER_COMPILE_NATIVE_SUPPORT_BINARY=0
 
 CMD sudo a2enmod passenger && sudo apache2ctl restart && sudo /bin/bash
 """
